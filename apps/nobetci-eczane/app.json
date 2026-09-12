@@ -1,0 +1,62 @@
+{
+  "expo": {
+    "name": "Nöbetçi Eczane",
+    "slug": "nobetci-eczane",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "nobetcieczane",
+    "userInterfaceStyle": "automatic",
+    "primaryColor": "#1F7A4D",
+    "ios": {
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.canykr.nobetcieczane",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.canykr.nobetcieczane",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#1F7A4D",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 76
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Size en yakın nöbetçi eczaneyi gösterebilmek için konumunuz kullanılır.",
+          "locationAlwaysAndWhenInUsePermission": "Size en yakın nöbetçi eczaneyi gösterebilmek için konumunuz kullanılır.",
+          "isAndroidBackgroundLocationEnabled": false,
+          "isIosBackgroundLocationEnabled": false
+        }
+      ],
+      [
+        "expo-maps",
+        {
+          "requestLocationPermission": true,
+          "locationPermission": "Nöbetçi eczaneleri haritada konumunuza göre gösterebilmek için konumunuz kullanılır."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}
