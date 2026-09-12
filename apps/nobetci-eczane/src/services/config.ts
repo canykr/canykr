@@ -32,6 +32,18 @@ function clean(value: string | undefined): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
 }
 
+const DEFAULT_TIMEOUT_MS = 12_000;
+
+/**
+ * Zaman aşımını okur. Sayıya çevrilemeyen bir değer `NaN` üretir ve
+ * `setTimeout(..., NaN)` sıfıra yuvarlandığı için her istek daha başlamadan
+ * iptal edilirdi; bu yüzden yalnızca geçerli pozitif sayılar kabul edilir.
+ */
+export function readTimeout(raw: string | undefined): number {
+  const parsed = Number(clean(raw));
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_TIMEOUT_MS;
+}
+
 function resolveProvider(): ProviderId {
   const raw = clean(process.env.EXPO_PUBLIC_PHARMACY_PROVIDER);
   if (raw === 'collectapi' || raw === 'nosyapi' || raw === 'custom' || raw === 'demo') {
@@ -46,7 +58,7 @@ export const config: AppConfig = {
   apiKey: clean(process.env.EXPO_PUBLIC_PHARMACY_API_KEY),
   baseUrl: clean(process.env.EXPO_PUBLIC_PHARMACY_API_URL),
   submitUrl: clean(process.env.EXPO_PUBLIC_PHARMACY_SUBMIT_URL),
-  requestTimeoutMs: Number(clean(process.env.EXPO_PUBLIC_REQUEST_TIMEOUT_MS) ?? '12000'),
+  requestTimeoutMs: readTimeout(process.env.EXPO_PUBLIC_REQUEST_TIMEOUT_MS),
 };
 
 /** Gerçek bir veri kaynağı yapılandırılmış mı? */

@@ -1,4 +1,4 @@
-import { ApiError, fetchWithTimeout, messageForStatus } from '@/lib/http';
+import { ApiError, fetchJsonWithTimeout, messageForStatus } from '@/lib/http';
 import { pickCoordinate, toPharmacy } from '@/services/providers/normalize';
 import type { PharmacyProvider } from '@/services/providers/types';
 import type { AppConfig } from '@/services/config';
@@ -36,21 +36,24 @@ export function createCollectApiProvider(config: AppConfig): PharmacyProvider {
         params.set('ilce', query.district);
       }
 
-      const response = await fetchWithTimeout(`${ENDPOINT}?${params.toString()}`, {
-        method: 'GET',
-        headers: {
-          authorization: `apikey ${config.apiKey}`,
-          'content-type': 'application/json',
-        },
-        timeoutMs: config.requestTimeoutMs,
-      });
+      const response = await fetchJsonWithTimeout<CollectApiResponse>(
+        `${ENDPOINT}?${params.toString()}`,
+        {
+          method: 'GET',
+          headers: {
+            authorization: `apikey ${config.apiKey}`,
+            'content-type': 'application/json',
+          },
+          timeoutMs: config.requestTimeoutMs,
+        }
+      );
 
       if (!response.ok) {
         throw new ApiError(messageForStatus(response.status), response.status);
       }
 
-      const body = (await response.json()) as CollectApiResponse;
-      if (body.success === false || !Array.isArray(body.result)) {
+      const body = response.data;
+      if (!body || body.success === false || !Array.isArray(body.result)) {
         throw new ApiError('Veri sağlayıcısı beklenmeyen bir yanıt döndürdü.');
       }
 

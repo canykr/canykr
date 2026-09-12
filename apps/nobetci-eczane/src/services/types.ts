@@ -55,7 +55,11 @@ export type Pharmacy = {
   district: string;
   address: string;
   phone: string;
-  location: Coordinate;
+  /**
+   * Kullanılabilir koordinat yoksa `null`. Eskiden burada `{0, 0}` tutuluyordu;
+   * bu, kullanıcıyı Atlas Okyanusu'na yönlendiren bir hataya yol açıyordu.
+   */
+  location: Coordinate | null;
   notes?: string;
   source: PharmacySource;
   locationQuality: LocationQuality;
@@ -67,9 +71,11 @@ export type Pharmacy = {
 /** Panelden kaydedilen, henüz kimliği olmayan eczane bilgisi. */
 export type PharmacyDraft = Omit<
   Pharmacy,
-  'id' | 'source' | 'updatedAt' | 'locationQuality'
+  'id' | 'source' | 'updatedAt' | 'locationQuality' | 'location'
 > & {
   id?: string;
+  /** Panelden kayıt için konum zorunludur; doğrulama bunu güvence altına alır. */
+  location: Coordinate;
 };
 
 /** Mesafe bilgisi eklenmiş eczane kaydı. */

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ApiError } from '@/lib/http';
 import { readJson, StorageKeys, writeJson } from '@/lib/storage';
+
 import { TimedCache } from '@/services/cache';
 import { loadLocalPharmacies } from '@/services/local-pharmacies';
 import { mergePharmacies } from '@/services/pharmacy-repository';
@@ -43,13 +44,16 @@ export function usePharmacies(city: string | null): UsePharmaciesResult {
 
   const load = useCallback(
     async (targetCity: string | null, { useCache }: { useCache: boolean }) => {
+      // Kimlik her çağrıda artar: il temizlendiğinde uçuştaki eski isteğin
+      // listeyi yeniden doldurmasını engeller.
+      const id = ++requestId.current;
+
       if (!targetCity) {
         setStatus('ready');
         setPharmacies([]);
         return;
       }
 
-      const id = ++requestId.current;
       setStatus('loading');
       setError(null);
 
@@ -102,9 +106,6 @@ export function usePharmacies(city: string | null): UsePharmaciesResult {
     // Veri getirme işi bilerek bağlanma anında başlatılıyor; sonuç geldiğinde durum güncellenir.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load(city, { useCache: true });
-    if (city) {
-      void writeJson(StorageKeys.lastCity, city);
-    }
   }, [city, load]);
 
   const reload = useCallback(async () => {
@@ -126,4 +127,14 @@ export function usePharmacies(city: string | null): UsePharmaciesResult {
 /** Uygulama açıldığında en son seçilen ili hatırlar. */
 export async function loadLastCity(): Promise<string | null> {
   return readJson<string | null>(StorageKeys.lastCity, null);
+}
+
+/**
+ * En son ili yalnızca kullanıcı açıkça seçtiğinde kaydeder.
+ *
+ * Ekranda görünen her ili kaydetmek, konumdan çözülen ilin kalıcılaşmasına ve
+ * sonraki açılışta konumla yarışmasına yol açıyordu.
+ */
+export async function rememberCity(city: string): Promise<void> {
+  await writeJson(StorageKeys.lastCity, city);
 }

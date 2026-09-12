@@ -1,5 +1,5 @@
 import { createId } from '@/lib/id';
-import { fetchWithTimeout } from '@/lib/http';
+import { sendWithTimeout } from '@/lib/http';
 import { readJson, writeJson } from '@/lib/storage';
 import { config } from '@/services/config';
 import type { PharmacyReport } from '@/services/types';
@@ -27,7 +27,7 @@ export async function saveReport(
 
   if (config.submitUrl) {
     try {
-      await fetchWithTimeout(`${config.submitUrl.replace(/\/$/, '')}/reports`, {
+      await sendWithTimeout(`${config.submitUrl.replace(/\/$/, '')}/reports`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(report),

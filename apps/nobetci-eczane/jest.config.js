@@ -16,8 +16,8 @@ module.exports = {
       {
         tsconfig: {
           module: 'commonjs',
-          target: 'es2021',
-          lib: ['es2021'],
+          target: 'es2022',
+          lib: ['es2022'],
           strict: true,
           types: ['jest', 'node'],
           esModuleInterop: true,

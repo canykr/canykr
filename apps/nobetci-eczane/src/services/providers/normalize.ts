@@ -140,7 +140,7 @@ export function toPharmacy(
     district,
     address: raw.address.trim().replace(/\s+/g, ' '),
     phone: raw.phone.trim(),
-    location: location ?? { latitude: 0, longitude: 0 },
+    location,
     notes: raw.notes?.trim() || undefined,
     source: 'api',
     locationQuality: location ? quality : 'unknown',

@@ -95,7 +95,34 @@ export const CITIES: City[] = [
 
 export const CITY_NAMES = CITIES.map((city) => city.name);
 
+/**
+ * Servislerin ve cihazların kullandığı kısa ya da eski il adları.
+ * Eşleşmeyen bir ad, koordinatın "bilinmiyor" sayılmasına yol açtığı için
+ * bu tablo veri kalitesi açısından önemli.
+ */
+const CITY_ALIASES: Record<string, string> = {
+  afyon: 'Afyonkarahisar',
+  antep: 'Gaziantep',
+  urfa: 'Şanlıurfa',
+  maras: 'Kahramanmaraş',
+  'k.maraş': 'Kahramanmaraş',
+  maraş: 'Kahramanmaraş',
+  içel: 'Mersin',
+  icel: 'Mersin',
+  hakkâri: 'Hakkari',
+  'i̇stanbul': 'İstanbul',
+  'i̇zmir': 'İzmir',
+};
+
 export function findCityByName(name: string): City | undefined {
   const target = name.trim().toLocaleLowerCase('tr-TR');
-  return CITIES.find((city) => city.name.toLocaleLowerCase('tr-TR') === target);
+  const direct = CITIES.find((city) => city.name.toLocaleLowerCase('tr-TR') === target);
+  if (direct) {
+    return direct;
+  }
+
+  const alias = CITY_ALIASES[target];
+  return alias
+    ? CITIES.find((city) => city.name === alias)
+    : undefined;
 }

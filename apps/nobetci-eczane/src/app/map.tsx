@@ -63,12 +63,19 @@ export default function MapScreen() {
 
   const markers: MapMarker[] = useMemo(
     () =>
-      results.map((pharmacy) => ({
-        id: pharmacy.id,
-        coordinate: pharmacy.location,
-        title: pharmacy.name,
-        highlighted: true,
-      })),
+      results.flatMap((pharmacy) =>
+        // Koordinatı olmayan kayıt haritaya konulamaz; listede görünmeye devam eder.
+        pharmacy.location
+          ? [
+              {
+                id: pharmacy.id,
+                coordinate: pharmacy.location,
+                title: pharmacy.name,
+                highlighted: true,
+              },
+            ]
+          : []
+      ),
     [results]
   );
 

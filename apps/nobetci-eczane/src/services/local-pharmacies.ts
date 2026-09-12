@@ -1,5 +1,5 @@
 import { createId } from '@/lib/id';
-import { ApiError, fetchWithTimeout } from '@/lib/http';
+import { ApiError, sendWithTimeout } from '@/lib/http';
 import { readJson, removeKey, StorageKeys, writeJson } from '@/lib/storage';
 import { config } from '@/services/config';
 import type { Pharmacy, PharmacyDraft } from '@/services/types';
@@ -64,7 +64,7 @@ export async function publishPharmacy(pharmacy: Pharmacy): Promise<boolean> {
     return false;
   }
 
-  const response = await fetchWithTimeout(config.submitUrl, {
+  const response = await sendWithTimeout(config.submitUrl, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',

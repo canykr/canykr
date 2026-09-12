@@ -37,6 +37,15 @@ export function PharmacyDetailSheet({
   const theme = useTheme();
   const [copied, setCopied] = useState(false);
   const [reported, setReported] = useState(false);
+  const [shownId, setShownId] = useState<string | null>(null);
+
+  // Bileşen kapatıldığında bağlı kalmaya devam ettiği için, başka bir eczane
+  // açıldığında "kopyalandı" / "bildirim alındı" durumları sıfırlanmalı.
+  if (pharmacy && pharmacy.id !== shownId) {
+    setShownId(pharmacy.id);
+    setCopied(false);
+    setReported(false);
+  }
 
   if (!pharmacy) {
     return null;

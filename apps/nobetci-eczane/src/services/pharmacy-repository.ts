@@ -19,7 +19,11 @@ export function mergePharmacies(fromApi: Pharmacy[], fromPanel: Pharmacy[]): Pha
   const merged = new Map<string, Pharmacy>();
 
   for (const pharmacy of fromApi) {
-    merged.set(identityKey(pharmacy), pharmacy);
+    const key = identityKey(pharmacy);
+    const existing = merged.get(key);
+    // Sağlayıcı aynı eczaneyi birden çok satırda döndürebilir (bugün ve yarın
+    // ya da iki ayrı vardiya). Üzerine yazmak bir nöbet gününü kaybettirirdi.
+    merged.set(key, existing ? withMergedDuties(existing, pharmacy) : pharmacy);
   }
 
   for (const pharmacy of fromPanel) {
@@ -31,16 +35,21 @@ export function mergePharmacies(fromApi: Pharmacy[], fromPanel: Pharmacy[]): Pha
   return [...merged.values()];
 }
 
+/** İki kaydı, nöbet günlerini kaybetmeden birleştirir. */
+function withMergedDuties(base: Pharmacy, extra: Pharmacy): Pharmacy {
+  const seen = new Set(base.duties.map((duty) => duty.date));
+  return {
+    ...base,
+    duties: [...base.duties, ...extra.duties.filter((duty) => !seen.has(duty.date))],
+  };
+}
+
 /**
  * Panel kaydını temel alır ama API'nin bildirdiği nöbet günlerini de korur;
  * eczane panele her gün girmese de nöbet bilgisi kaybolmasın.
  */
 function preferPanelRecord(apiRecord: Pharmacy, panelRecord: Pharmacy): Pharmacy {
-  const dutyDates = new Set(panelRecord.duties.map((duty) => duty.date));
-  return {
-    ...panelRecord,
-    duties: [...panelRecord.duties, ...apiRecord.duties.filter((duty) => !dutyDates.has(duty.date))],
-  };
+  return withMergedDuties(panelRecord, apiRecord);
 }
 
 /** Listeye verilen noktaya olan mesafeyi ekler. */
@@ -50,7 +59,8 @@ export function withDistance(
 ): PharmacyWithDistance[] {
   return pharmacies.map((pharmacy) => ({
     ...pharmacy,
-    distanceMeters: origin ? distanceInMeters(origin, pharmacy.location) : null,
+    distanceMeters:
+      origin && pharmacy.location ? distanceInMeters(origin, pharmacy.location) : null,
   }));
 }
 
@@ -124,9 +134,10 @@ export function withinRadius(
   center: Coordinate,
   radiusMeters: number
 ): PharmacyWithDistance[] {
-  return withDistance(pharmacies, center).filter(
-    (pharmacy) => (pharmacy.distanceMeters ?? Number.POSITIVE_INFINITY) <= radiusMeters
-  );
+  return withDistance(
+    pharmacies.filter((pharmacy) => pharmacy.location !== null),
+    center
+  ).filter((pharmacy) => (pharmacy.distanceMeters ?? Number.POSITIVE_INFINITY) <= radiusMeters);
 }
 
 /** Sonuç listesinden ilçe süzgeci için seçenekleri çıkarır. */

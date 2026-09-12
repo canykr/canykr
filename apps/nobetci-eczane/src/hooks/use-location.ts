@@ -3,6 +3,21 @@ import { useCallback, useEffect, useState } from 'react';
 
 import type { Coordinate } from '@/services/types';
 
+/**
+ * Konum sabitlemesi bu süreyi aşarsa vazgeçilir.
+ *
+ * `getCurrentPositionAsync` kapalı alanda dakikalarca bekleyebiliyor; sınır
+ * koymazsak açılış ekranı süresiz "yükleniyor" durumunda kalır.
+ */
+const LOCATION_TIMEOUT_MS = 8_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  return Promise.race([
+    promise,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
+  ]);
+}
+
 export type LocationStatus = 'idle' | 'loading' | 'granted' | 'denied' | 'error';
 
 export type UseLocationResult = {
@@ -49,9 +64,22 @@ export function useLocation(): UseLocationResult {
         });
       }
 
-      const current = await Location.getCurrentPositionAsync({
-        accuracy: Location.LocationAccuracy.Balanced,
-      });
+      const current = await withTimeout(
+        Location.getCurrentPositionAsync({ accuracy: Location.LocationAccuracy.Balanced }),
+        LOCATION_TIMEOUT_MS
+      );
+
+      if (!current) {
+        // Süre doldu: elde son bilinen konum varsa onunla devam et.
+        if (lastKnown) {
+          setStatus('granted');
+        } else {
+          setStatus('error');
+          setError('Konum zamanında alınamadı. İli elle seçebilirsiniz.');
+        }
+        return;
+      }
+
       const next = {
         latitude: current.coords.latitude,
         longitude: current.coords.longitude,

@@ -1,4 +1,4 @@
-import { ApiError, fetchWithTimeout, messageForStatus } from '@/lib/http';
+import { ApiError, fetchJsonWithTimeout, messageForStatus } from '@/lib/http';
 import { pickCoordinate, toPharmacy } from '@/services/providers/normalize';
 import type { PharmacyProvider } from '@/services/providers/types';
 import type { AppConfig } from '@/services/config';
@@ -47,22 +47,25 @@ export function createNosyApiProvider(config: AppConfig): PharmacyProvider {
         params.set('district', query.district);
       }
 
-      const response = await fetchWithTimeout(`${ENDPOINT}?${params.toString()}`, {
-        method: 'GET',
-        headers: {
-          authorization: `Bearer ${config.apiKey}`,
-          accept: 'application/json',
-        },
-        timeoutMs: config.requestTimeoutMs,
-      });
+      const response = await fetchJsonWithTimeout<NosyApiResponse>(
+        `${ENDPOINT}?${params.toString()}`,
+        {
+          method: 'GET',
+          headers: {
+            authorization: `Bearer ${config.apiKey}`,
+            accept: 'application/json',
+          },
+          timeoutMs: config.requestTimeoutMs,
+        }
+      );
 
       if (!response.ok) {
         throw new ApiError(messageForStatus(response.status), response.status);
       }
 
-      const body = (await response.json()) as NosyApiResponse;
-      if (!Array.isArray(body.data)) {
-        throw new ApiError(body.message ?? 'Veri sağlayıcısı beklenmeyen bir yanıt döndürdü.');
+      const body = response.data;
+      if (!body || !Array.isArray(body.data)) {
+        throw new ApiError(body?.message ?? 'Veri sağlayıcısı beklenmeyen bir yanıt döndürdü.');
       }
 
       return body.data

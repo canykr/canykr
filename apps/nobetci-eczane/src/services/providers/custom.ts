@@ -1,8 +1,25 @@
-import { ApiError, fetchWithTimeout, messageForStatus } from '@/lib/http';
+import { ApiError, fetchJsonWithTimeout, messageForStatus } from '@/lib/http';
 import { pickCoordinate, toPharmacy } from '@/services/providers/normalize';
 import type { PharmacyProvider } from '@/services/providers/types';
 import type { AppConfig } from '@/services/config';
 import type { Pharmacy, PharmacyQuery } from '@/services/types';
+
+/**
+ * Yanıttan kayıt dizisini çıkarır. Düz dizi ya da `{ data: [...] }` kabul
+ * edilir; JSON `null` gövdesi de dahil diğer her şey geçersizdir.
+ */
+export function extractRows(body: unknown): Record<string, unknown>[] | null {
+  if (Array.isArray(body)) {
+    return body as Record<string, unknown>[];
+  }
+  if (body !== null && typeof body === 'object') {
+    const data = (body as { data?: unknown }).data;
+    if (Array.isArray(data)) {
+      return data as Record<string, unknown>[];
+    }
+  }
+  return null;
+}
 
 /**
  * Kendi sunucunuz (ya da bir API'yi anahtarınızla saran vekil servis) için
@@ -37,7 +54,7 @@ export function createCustomProvider(config: AppConfig): PharmacyProvider {
       }
 
       const url = `${config.baseUrl.replace(/\/$/, '')}/nobetci?${params.toString()}`;
-      const response = await fetchWithTimeout(url, {
+      const response = await fetchJsonWithTimeout<unknown>(url, {
         method: 'GET',
         headers: {
           accept: 'application/json',
@@ -50,13 +67,7 @@ export function createCustomProvider(config: AppConfig): PharmacyProvider {
         throw new ApiError(messageForStatus(response.status), response.status);
       }
 
-      const body: unknown = await response.json();
-      const rows = Array.isArray(body)
-        ? body
-        : Array.isArray((body as { data?: unknown }).data)
-          ? ((body as { data: Record<string, unknown>[] }).data)
-          : null;
-
+      const rows = extractRows(response.data);
       if (!rows) {
         throw new ApiError('Sunucu beklenmeyen bir yanıt döndürdü.');
       }

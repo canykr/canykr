@@ -14,7 +14,7 @@ import { BottomTabInset, MaxContentWidth, Radius, Spacing } from '@/constants/th
 import { CITIES, findCityByName } from '@/data/cities';
 import { useFavorites } from '@/hooks/use-favorites';
 import { useLocation } from '@/hooks/use-location';
-import { loadLastCity, usePharmacies } from '@/hooks/use-pharmacies';
+import { loadLastCity, rememberCity, usePharmacies } from '@/hooks/use-pharmacies';
 import { useTheme } from '@/hooks/use-theme';
 import { distanceInMeters } from '@/lib/geo';
 import {
@@ -64,8 +64,13 @@ export default function NearbyScreen() {
     return location.coordinate ? nearestCity(location.coordinate) : null;
   }, [location.cityName, location.coordinate]);
 
-  // Öncelik sırası: kullanıcının seçimi > en son kullanılan il > konumdan çözülen il.
-  const city = selectedCity ?? storedCity ?? cityFromLocation;
+  // Konum henüz sonuçlanmadıysa il seçimini bekletiyoruz: kayıtlı ille açıp
+  // hemen konumdakine atlamak hem göz alıcı bir sıçrama hem de boşa giden bir
+  // istek demek. `useLocation` zaman aşımlı olduğu için bu bekleme sınırlı.
+  const isLocationSettled = location.status !== 'loading';
+
+  // Öncelik sırası: kullanıcının seçimi > konumdan çözülen il > en son kullanılan il.
+  const city = selectedCity ?? (isLocationSettled ? (cityFromLocation ?? storedCity) : null);
 
   const { pharmacies, status, error, fromCache, isLive, attribution, reload } = usePharmacies(city);
 
@@ -244,6 +249,8 @@ export default function NearbyScreen() {
         onSelect={(value) => {
           setSelectedCity(value);
           setDistrict(null);
+          // Yalnızca açık seçimler hatırlanır.
+          void rememberCity(value);
         }}
         onClose={() => setPickerVisible(false)}
       />

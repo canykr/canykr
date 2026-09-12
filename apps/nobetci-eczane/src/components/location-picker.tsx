@@ -33,7 +33,37 @@ export function LocationPicker({ value, onChange, city, error }: LocationPickerP
   const theme = useTheme();
   const [isLocating, setIsLocating] = useState(false);
 
-  const center = value ?? findCityByName(city ?? '')?.center ?? FALLBACK_CENTER;
+  /**
+   * Kameranın hedefi, seçili noktadan AYRI tutulur.
+   *
+   * Aksi halde kamera konumu seçili noktadan türetilir, kaydırma seçili noktayı
+   * değiştirir, o da kamerayı yeniden sürer ve harita kullanıcının parmağıyla
+   * kavga eder. Kamera yalnızca açılışta ve "konumumu kullan" ile hareket eder.
+   */
+  const [cameraTarget, setCameraTarget] = useState<Coordinate>(
+    () => value ?? findCityByName(city ?? '')?.center ?? FALLBACK_CENTER
+  );
+
+  // Koordinat alanları metin olarak tutulur; sayıya çevrilmiş değere bağlansaydı
+  // "41." yazılırken ondalık nokta silinir ve virgülden sonrası girilemezdi.
+  const [latitudeText, setLatitudeText] = useState(value ? String(value.latitude) : '');
+  const [longitudeText, setLongitudeText] = useState(value ? String(value.longitude) : '');
+
+  /** İki alan da geçerli sayı içeriyorsa değişikliği yukarı bildirir. */
+  const commitManualEntry = useCallback(
+    (latitudeRaw: string, longitudeRaw: string) => {
+      const latitude = Number(latitudeRaw.replace(',', '.'));
+      const longitude = Number(longitudeRaw.replace(',', '.'));
+      const next = { latitude, longitude };
+
+      // Tek alan doldurulduğunda diğeri için sessizce 0 kullanmıyoruz; bu,
+      // eczaneyi okyanusun ortasına kaydeden bir hataya yol açıyordu.
+      if (isValidCoordinate(next)) {
+        onChange(next);
+      }
+    },
+    [onChange]
+  );
 
   const pickCurrentLocation = useCallback(async () => {
     setIsLocating(true);
@@ -49,10 +79,14 @@ export function LocationPicker({ value, onChange, city, error }: LocationPickerP
       const position = await Location.getCurrentPositionAsync({
         accuracy: Location.LocationAccuracy.High,
       });
-      onChange({
+      const next = {
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
-      });
+      };
+      onChange(next);
+      setCameraTarget(next);
+      setLatitudeText(String(next.latitude));
+      setLongitudeText(String(next.longitude));
     } catch {
       Alert.alert('Konum alınamadı', 'Haritadan elle işaretleyebilirsiniz.');
     } finally {
@@ -70,7 +104,7 @@ export function LocationPicker({ value, onChange, city, error }: LocationPickerP
 
       <View style={[styles.mapWrapper, { borderColor: error ? theme.danger : theme.border }]}>
         <MapCanvas
-          center={center}
+          center={cameraTarget}
           zoom={16}
           showsUserLocation
           markers={
@@ -101,27 +135,22 @@ export function LocationPicker({ value, onChange, city, error }: LocationPickerP
           <Field
             label="Enlem"
             keyboardType="numbers-and-punctuation"
-            value={value ? String(value.latitude) : ''}
+            value={latitudeText}
             placeholder="41.0082"
+            hint="Her iki alan da dolduğunda konum kaydedilir."
             onChangeText={(text) => {
-              const latitude = Number(text.replace(',', '.'));
-              const next = { latitude, longitude: value?.longitude ?? 0 };
-              if (isValidCoordinate(next)) {
-                onChange(next);
-              }
+              setLatitudeText(text);
+              commitManualEntry(text, longitudeText);
             }}
           />
           <Field
             label="Boylam"
             keyboardType="numbers-and-punctuation"
-            value={value ? String(value.longitude) : ''}
+            value={longitudeText}
             placeholder="28.9784"
             onChangeText={(text) => {
-              const longitude = Number(text.replace(',', '.'));
-              const next = { latitude: value?.latitude ?? 0, longitude };
-              if (isValidCoordinate(next)) {
-                onChange(next);
-              }
+              setLongitudeText(text);
+              commitManualEntry(latitudeText, text);
             }}
           />
         </View>
