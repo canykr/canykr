@@ -1,0 +1,57 @@
+name: Android APK
+
+# Test için kurulabilir bir APK üretir ve çalıştırma çıktısı olarak yükler.
+# İndirme: GitHub > Actions > ilgili çalıştırma > Artifacts > nobetci-eczane-apk
+#
+# `release` yapısı kullanılıyor çünkü JavaScript paketi APK'nın içine gömülür;
+# `debug` yapısı çalışmak için bilgisayardaki Metro sunucusuna ihtiyaç duyar.
+# İmzalama, Expo şablonunun varsayılan hata ayıklama anahtarıyla yapılır:
+# yan yüklemeyle test için yeterlidir, mağazaya yüklenemez.
+on:
+  push:
+    paths:
+      - 'apps/nobetci-eczane/**'
+      - '.github/workflows/android-apk.yml'
+  workflow_dispatch:
+
+jobs:
+  apk:
+    name: APK derle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/nobetci-eczane/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Bağımlılıkları kur
+        working-directory: apps/nobetci-eczane
+        run: npm ci
+
+      # Yerel Android projesi depoda tutulmuyor (.gitignore'da), her derlemede
+      # app.json'daki yapılandırmadan yeniden üretiliyor.
+      - name: Android projesini üret
+        working-directory: apps/nobetci-eczane
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Gradle ile derle
+        working-directory: apps/nobetci-eczane/android
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: APK'yı yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: nobetci-eczane-apk
+          path: apps/nobetci-eczane/android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+          retention-days: 14
