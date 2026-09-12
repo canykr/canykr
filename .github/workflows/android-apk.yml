@@ -53,6 +53,19 @@ jobs:
         working-directory: apps/nobetci-eczane
         run: npx expo prebuild --platform android --no-install
 
+      # Expo şablonunun varsayılanı (512 MB metaspace) runner'da yetmiyor:
+      # `compileReleaseKotlin` görevi OutOfMemoryError: Metaspace ile düşüyor.
+      # Kotlin derleyicisi ayrı bir JVM'de çalıştığı için onun belleği de
+      # ayrıca yükseltilmeli. Runner'da 16 GB RAM var.
+      - name: Derleme belleğini yükselt
+        working-directory: apps/nobetci-eczane/android
+        run: |
+          {
+            echo ""
+            echo "org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=2g -Dfile.encoding=UTF-8"
+            echo "kotlin.daemon.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g"
+          } >> gradle.properties
+
       # React Native'in yerel C++ katmanı varsayılan olarak dört işlemci
       # mimarisi için derleniyor ve iki çekirdekli runner'da bu yarım saati
       # aşabiliyor. Test APK'sı için arm64-v8a yeterli: 2017 sonrası neredeyse
