@@ -1,0 +1,67 @@
+name: Nöbetçi Eczane
+
+# Uygulamaya dokunan her değişiklikte lint, tip kontrolü ve testleri çalıştırır,
+# ardından iOS ve Android paketlerinin gerçekten derlenebildiğini doğrular.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/nobetci-eczane/**'
+      - '.github/workflows/nobetci-eczane.yml'
+  pull_request:
+    paths:
+      - 'apps/nobetci-eczane/**'
+      - '.github/workflows/nobetci-eczane.yml'
+
+defaults:
+  run:
+    working-directory: apps/nobetci-eczane
+
+jobs:
+  check:
+    name: Lint, tip kontrolü ve testler
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/nobetci-eczane/package-lock.json
+
+      - name: Bağımlılıkları kur
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Tip kontrolü
+        run: npm run typecheck
+
+      - name: Testler
+        run: npm test -- --ci
+
+  bundle:
+    name: iOS ve Android paketi derleniyor
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [ios, android]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/nobetci-eczane/package-lock.json
+
+      - name: Bağımlılıkları kur
+        run: npm ci
+
+      # Paketleme, uygulamanın gerçekten açılabildiğini gösteren en ucuz kanıt:
+      # eksik bir içe aktarma ya da bozuk bir yönlendirme burada yakalanır.
+      - name: ${{ matrix.platform }} paketi
+        run: npx expo export --platform ${{ matrix.platform }} --output-dir "$RUNNER_TEMP/export-${{ matrix.platform }}"
