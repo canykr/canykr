@@ -3,6 +3,9 @@ name: Android APK
 # Test için kurulabilir bir APK üretir ve çalıştırma çıktısı olarak yükler.
 # İndirme: GitHub > Actions > ilgili çalıştırma > Artifacts > nobetci-eczane-apk
 #
+# Yalnızca arm64-v8a derlenir (bkz. aşağıdaki not); test cihazı çok eski bir
+# telefonsa `reactNativeArchitectures` değerine `armeabi-v7a` eklenmelidir.
+#
 # `release` yapısı kullanılıyor çünkü JavaScript paketi APK'nın içine gömülür;
 # `debug` yapısı çalışmak için bilgisayardaki Metro sunucusuna ihtiyaç duyar.
 # İmzalama, Expo şablonunun varsayılan hata ayıklama anahtarıyla yapılır:
@@ -18,6 +21,8 @@ jobs:
   apk:
     name: APK derle
     runs-on: ubuntu-latest
+    # Takılan bir derlemenin altı saat runner işgal etmesini engeller.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -34,6 +39,10 @@ jobs:
 
       - uses: android-actions/setup-android@v3
 
+      # Gradle bağımlılıklarını ve derleme önbelleğini saklar; ilk çalıştırmadan
+      # sonraki derlemeler belirgin biçimde kısalır.
+      - uses: gradle/actions/setup-gradle@v4
+
       - name: Bağımlılıkları kur
         working-directory: apps/nobetci-eczane
         run: npm ci
@@ -44,9 +53,13 @@ jobs:
         working-directory: apps/nobetci-eczane
         run: npx expo prebuild --platform android --no-install
 
+      # React Native'in yerel C++ katmanı varsayılan olarak dört işlemci
+      # mimarisi için derleniyor ve iki çekirdekli runner'da bu yarım saati
+      # aşabiliyor. Test APK'sı için arm64-v8a yeterli: 2017 sonrası neredeyse
+      # tüm Android telefonlar bu mimaride.
       - name: Gradle ile derle
         working-directory: apps/nobetci-eczane/android
-        run: ./gradlew assembleRelease --no-daemon
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a
 
       - name: APK'yı yükle
         uses: actions/upload-artifact@v4
